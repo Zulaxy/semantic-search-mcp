@@ -7,7 +7,7 @@
 
 AI coding agents (opencode, Claude, Cursor) can grep for exact words — but `semantic-search-mcp` lets them **find code by meaning**. Ask "where do we handle authentication?" and get back `config/auth.php`, `AuthController.php`, `login.blade.php` — even if the word "handle" doesn't appear.
 
-**Powered by:** [`all-MiniLM-L6-v2`](https://huggingface.co/Xenova/all-MiniLM-L6-v2) via ONNX runtime. Everything runs **locally**, no data leaves your machine.
+**Powered by:** [`bge-small-en-v1.5`](https://huggingface.co/Xenova/bge-small-en-v1.5) via ONNX runtime. Everything runs **locally**, no data leaves your machine. 80MB, 384-dim, optimized for retrieval.
 
 ## Quick Start
 
@@ -64,7 +64,7 @@ Create `.semantic-search.json` in your project root:
 {
   "extensions": [".php", ".js", ".jsx", ".ts", ".tsx"],
   "skipDirs": ["node_modules", "vendor", ".git", "dist"],
-  "model": "Xenova/all-MiniLM-L6-v2",
+  "model": "Xenova/bge-small-en-v1.5",
   "chunkThreshold": 300,
   "maxChunksPerFile": 4
 }
@@ -75,7 +75,7 @@ Or use environment variables:
 ```bash
 export SEMANTIC_SEARCH_EXTENSIONS=".php,.js,.jsx,.ts,.tsx"
 export SEMANTIC_SEARCH_SKIPDIRS="node_modules,vendor"
-export SEMANTIC_SEARCH_MODEL="Xenova/all-MiniLM-L6-v2"
+export SEMANTIC_SEARCH_MODEL="Xenova/bge-small-en-v1.5"
 ```
 
 ### All config options
@@ -84,7 +84,7 @@ export SEMANTIC_SEARCH_MODEL="Xenova/all-MiniLM-L6-v2"
 |-----|---------|-------------|
 | `extensions` | `[".php", ".js", ".jsx", ".ts", ".tsx", ".vue", ".py", ".rb", ".go", ".rs", ".java", ".cs", ...]` | File extensions to index |
 | `skipDirs` | `["node_modules", "vendor", ".git", "dist", "build", ...]` | Directories to skip |
-| `model` | `"Xenova/all-MiniLM-L6-v2"` | HuggingFace model (smaller=faster, larger=more accurate) |
+| `model` | `"Xenova/bge-small-en-v1.5"` | HuggingFace model (smaller=faster, larger=more accurate) |
 | `cacheDir` | `".opencode/mcp-cache/semantic-search"` | Where to store the index (relative to workspace) |
 | `chunkThreshold` | `300` | Lines above which to split files into chunks |
 | `maxChunksPerFile` | `4` | Max chunks per large file |
@@ -93,8 +93,9 @@ export SEMANTIC_SEARCH_MODEL="Xenova/all-MiniLM-L6-v2"
 
 ### Alternative models
 
-| Model | Size | Dimensions | Speed | Quality |
-|-------|------|-----------|-------|---------|
+| Model | Size | Dims | Speed | Quality |
+|-------|------|------|-------|---------|
+| `Xenova/bge-small-en-v1.5` | 80MB | 384 | Fast | Best retrieval |
 | `Xenova/all-MiniLM-L6-v2` | 80MB | 384 | Fast | Good |
 | `Xenova/all-mpnet-base-v2` | 420MB | 768 | Medium | Better |
 | `Xenova/multi-qa-MiniLM-L6-cos-v1` | 80MB | 384 | Fast | Better for QA |
@@ -122,7 +123,7 @@ semantic-search-mcp --help
 
 1. **Walk the workspace** — find all code files matching the configured extensions
 2. **Chunk files** — split large files into manageable pieces (default: 300 lines per chunk, max 4 per file)
-3. **Embed with ONNX** — run each chunk through [`all-MiniLM-L6-v2`](https://huggingface.co/Xenova/all-MiniLM-L6-v2) locally (384-dimensional vectors)
+3. **Embed with ONNX** — run each chunk through [`bge-small-en-v1.5`](https://huggingface.co/Xenova/bge-small-en-v1.5) locally (384-dimensional vectors)
 4. **Cache** — save the index to disk for instant restarts
 5. **Search** — embed the query, compute cosine similarity against all chunks, return top matches
 
