@@ -58,12 +58,38 @@ function cosineSimilarity(a, b) {
   return dot;
 }
 
+/** Simple keyword match score (0-1). Catches exact terms the embedding might miss. */
+function keywordScore(text, query) {
+  const qTerms = query.toLowerCase().split(/\s+/).filter(t => t.length > 2);
+  const txt = text.toLowerCase();
+  let score = 0;
+  for (const term of qTerms) {
+    const safe = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const matches = txt.match(new RegExp(safe, 'g'));
+    if (matches) score += Math.min(matches.length, 5);
+  }
+  return Math.min(score / (qTerms.length * 3), 1);
+}
+
+/** Blend embedding similarity (70%) + keyword match (30%) */
+function hybridScore(chunk, query, embedScore) {
+  if (!chunk.content) return embedScore;
+  const kw = keywordScore(chunk.content, query);
+  return 0.7 * embedScore + 0.3 * kw;
+}
+
+/** Build embedding-ready text with file path context */
+function embedContent(chunk) {
+  return `File: ${chunk.file}, lines ${chunk.startLine}-${chunk.endLine}\n${chunk.content}`;
+}
+
 async function searchIndex(query, limit, pathFilter) {
   const qEmb = await embedText(query);
   const scored = [];
   for (const chunk of index) {
     if (pathFilter && !chunk.file.startsWith(pathFilter.replace(/\\/g, '/'))) continue;
-    scored.push({ ...chunk, score: cosineSimilarity(qEmb, chunk.embedding) });
+    const embedScore = cosineSimilarity(qEmb, chunk.embedding);
+    scored.push({ ...chunk, score: hybridScore(chunk, query, embedScore) });
   }
   scored.sort((a, b) => b.score - a.score);
   return scored.slice(0, Math.min(limit, config.maxResults)).map(c => ({
@@ -138,7 +164,7 @@ async function buildIndex() {
   const indexed = [];
   for (let i = 0; i < allChunks.length; i += BATCH_SIZE) {
     const batch = allChunks.slice(i, i + BATCH_SIZE);
-    const embs = await Promise.all(batch.map(c => embedText(c.content)));
+    const embs = await Promise.all(batch.map(c => embedText(embedContent(c))));
     for (let j = 0; j < batch.length; j++) indexed.push({ ...batch[j], embedding: embs[j] });
     if ((i + BATCH_SIZE) % 100 === 0 || i + BATCH_SIZE >= allChunks.length) {
       console.error(`[${config.serverName}]  ${Math.min(i + BATCH_SIZE, allChunks.length)}/${allChunks.length} chunks processed`);
