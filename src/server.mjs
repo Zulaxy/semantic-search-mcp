@@ -10,6 +10,7 @@ import { readdir } from 'node:fs/promises';
 import { join, relative, resolve, sep } from 'node:path';
 import { pipeline, env } from '@xenova/transformers';
 import { loadConfig } from './config.mjs';
+import { extractFunctions } from './extractor.mjs';
 
 // ─── Bootstrap config ───────────────────────────────────────────────────────
 
@@ -155,7 +156,13 @@ async function buildIndex() {
     try {
       const c = readFileSync(fp, 'utf-8');
       if (c.length < 10) continue;
-      allChunks.push(...chunkContent(fp, c));
+      // Try function-level extraction first, fall back to line chunking
+      const extracted = extractFunctions(fp, c, WORKSPACE);
+      if (extracted) {
+        allChunks.push(...extracted);
+      } else {
+        allChunks.push(...chunkContent(fp, c));
+      }
     } catch { /* skip unreadable */ }
   }
   console.error(`[${config.serverName}] Generated ${allChunks.length} chunks. Computing embeddings...`);

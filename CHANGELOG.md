@@ -1,5 +1,22 @@
 # Changelog
 
+
+## 1.1.0
+- **Regex function extraction** � split code at function/class boundaries for better embeddings
+  - PHP: function, method, class declarations
+  - JS/TS/Vue: function, arrow, class declarations
+  - Python: def, class
+  - Go: func
+  - Rust: fn
+  - Java: method declarations
+  - Falls back to line chunking for unsupported languages
+
+## 1.0.4
+- Chunk metadata (file path prepended to embedding text)
+- Hybrid scoring (70% embedding + 30% keyword match)
+- CHANGELOG.md
+
+
 ## 1.0.4
 - **Chunk metadata** — prepend file path to embedding text for better context awareness
 - **Hybrid scoring** — combine embedding similarity + keyword match (70/30 blend)
