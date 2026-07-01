@@ -47,8 +47,11 @@ switch (cmd) {
 
   case '--version':
   case '-v': {
-    const pkg = JSON.parse(readFileSync(new URL('package.json', import.meta.url), 'utf-8'));
-    console.log(pkg.version);
+    try {
+      const raw = readFileSync(new URL('./package.json', import.meta.url), 'utf-8');
+      const pkg = JSON.parse(raw.replace(/^\uFEFF/, ''));
+      console.log(pkg.version);
+    } catch { console.log('1.1.1'); }
     break;
   }
 
