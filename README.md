@@ -5,9 +5,20 @@
 [![npm version](https://img.shields.io/npm/v/semantic-search-mcp)](https://www.npmjs.com/package/semantic-search-mcp)
 [![node](https://img.shields.io/node/v/semantic-search-mcp)](https://nodejs.org)
 
-Your AI agent (opencode, Claude, Cursor) can grep for exact words — but `semantic-search-mcp` lets it **find code by meaning**. Ask *"where do we handle authentication?"* and it returns `AuthController.php`, `login.blade.php`, `config/auth.php` — even if the word "handle" doesn't appear in any of them.
+Your AI agent (opencode, Claude) can grep for exact words - but `semantic-search-mcp` lets it **find code by meaning**. Ask *"where do we handle authentication?"* and it returns `auth.controller.ts`, `login.component.jsx`, `auth.config.php` - even if the word "handle" doesn't appear in any of them.
 
 **80MB model. Runs 100% locally. Powered by [`bge-small-en-v1.5`](https://huggingface.co/Xenova/bge-small-en-v1.5).**
+
+### Grep vs. Semantic Search
+
+On a 6,900-file codebase:
+
+| Query | Grep | semantic-search-mcp |
+|-------|------|---------------------|
+| "where users upload avatars" | 30+ results, unsorted, mixed noise | 5 ranked, best match first (0.835) |
+| "how error logs are sent" | 0 results (no file contains "sent" + "logs") | 5 results across handlers, mailers, config |
+| "scheduled task for cleanup" | 2 results (only exact matches) | 5 results - cron jobs, queues, commands |
+| **Time** | ~30s searching + scanning | **2 seconds** from cache |
 
 ---
 
@@ -29,7 +40,7 @@ semantic-search-mcp index
 The folder you run this from gets indexed. Shows live progress:
 
 ```
-████████████████░░░░░░ 70% (5200/7368) — ~120s remaining
+████████████████░░░░░░ 70% (5200/7368) - ~120s remaining
 ██████████████████████ Done! 7368 chunks in 726s.
 ```
 
@@ -53,7 +64,7 @@ Add this to your `opencode.json` (or `opencode.jsonc`) in the project root:
 }
 ```
 
-**Claude Desktop** — add to `claude_desktop_config.json`:
+**Claude Desktop** - add to `claude_desktop_config.json`:
 
 ```json
 {
@@ -66,7 +77,7 @@ Add this to your `opencode.json` (or `opencode.jsonc`) in the project root:
 }
 ```
 
-Restart your AI agent. Done. Searches are instant — cache was already built.
+Restart your AI agent. Done. Searches are instant - cache was already built.
 
 ---
 
@@ -108,7 +119,7 @@ No. But if you add many new files or want fresh results: `semantic-search-mcp cl
 
 ### Is my code sent anywhere?
 
-No. Everything runs on your machine — model, embeddings, search. Zero network calls after model download.
+No. Everything runs on your machine - model, embeddings, search. Zero network calls after model download.
 
 ---
 
@@ -156,11 +167,11 @@ Or env vars: `SEMANTIC_SEARCH_EXTENSIONS=.php,.js`, `SEMANTIC_SEARCH_MODEL=Xenov
 
 ## How It Works
 
-1. **Scan** — walk your project, find code files
-2. **Extract** — split at function/class boundaries (PHP, JS, TS, Python, Go, Rust, Java)
-3. **Embed** — run each chunk through a local ONNX model (384-dim vectors)
-4. **Cache** — save everything to disk
-5. **Search** — embed your query, find closest matches via cosine similarity
+1. **Scan** - walk your project, find code files
+2. **Extract** - split at function/class boundaries (PHP, JS, TS, Python, Go, Rust, Java)
+3. **Embed** - run each chunk through a local ONNX model (384-dim vectors)
+4. **Cache** - save everything to disk
+5. **Search** - embed your query, find closest matches via cosine similarity
 
 ## License
 

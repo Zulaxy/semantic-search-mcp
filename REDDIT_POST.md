@@ -1,35 +1,47 @@
-# semantic-search-mcp: Semantic code search for opencode, Claude, Cursor
+# I built semantic code search for opencode — npm package, fully local, 80MB model
 
-Hey r/opencode! I built an MCP server that adds semantic code search to AI coding agents.
+Came from Cursor where semantic search is built-in. opencode didn't have it. So I built it.
 
 ## What it does
 
-Instead of grepping for exact words, your AI can now search by **meaning**. Ask "where do we handle authentication?" and it returns `AuthController.php:login()`, `config/auth.php`, `Google2FAController.php` — even if the word "handle" doesn't appear.
+Your AI agent can now search your codebase by **meaning**, not just exact keywords. Ask *"where do I change profile picture?"* and it returns:
 
-## Try it (30 seconds)
-
-```bash
-npx semantic-search-mcp init
+```
+0.835  edit-profile-picture-drawer.jsx    ← the exact React drawer component
+0.798  profile-info-card.jsx              ← profile card with photo handling
+0.776  update_picture_type_id migration   ← DB schema
+0.756  UsersProfileUserSettingsController.php  ← backend controller
 ```
 
-Copy the snippet into opencode.jsonc, restart, done.
+On a 6,892 file codebase. In 2 seconds. From cache.
+
+## Install (3 steps)
+
+```bash
+# 1. Install
+npm i -g semantic-search-mcp
+
+# 2. Index your project (live progress bar)
+cd /your-project
+semantic-search-mcp index
+# ████████████░░░░░░░░ 68% — ~120s remaining
+
+# 3. Add to opencode.json
+# {"mcp":{"semantic-search":{"type":"local","command":["semantic-search-mcp"],"enabled":true}}}
+# Restart opencode. Done.
+```
 
 ## Features
 
-- **Function-level extraction** — splits code at function/class boundaries (PHP, JS, TS, Python, Go, Rust, Java)
+- **Per-function extraction** — splits at function/class boundaries (PHP, JS, TS, Python, Go, Rust, Java)
 - **Hybrid scoring** — 70% embedding similarity + 30% keyword match
-- **Local only** — 80MB model, runs ONNX on your machine, zero API calls
-- **TUI config wizard** — `semantic-search-mcp config` gives you checkboxes for extensions, searchable model picker
-- **Configurable** — `.semantic-search.json`, env vars, CLI args
-
-## Install
-
-```bash
-npm i -g semantic-search-mcp
-npx semantic-search-mcp config  # interactive setup
-```
+- **100% local** — 80MB model (bge-small-en-v1.5), runs ONNX on your machine, zero API calls
+- **TUI config wizard** — `semantic-search-mcp config` — checkboxes for languages, searchable model picker
+- **Per-project cache** — `cd project-a && index`, `cd project-b && index` — each gets its own cache
+- **Survives restarts** — cache is just a file on disk
 
 ## Links
 
-- npm: npmjs.com/package/semantic-search-mcp
-- GitHub: github.com/Zulaxy/semantic-search-mcp
+- **npm**: [npmjs.com/package/semantic-search-mcp](https://www.npmjs.com/package/semantic-search-mcp)
+- **GitHub**: [github.com/Zulaxy/semantic-search-mcp](https://github.com/Zulaxy/semantic-search-mcp)
+- **v1.2.2** — published today
