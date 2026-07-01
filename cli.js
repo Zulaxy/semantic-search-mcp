@@ -5,6 +5,7 @@
  *
  * Commands:
  *   (none)     Start the MCP server
+ *   config     Interactive TUI to set up .semantic-search.json
  *   init       Print opencode config snippet
  *   index      Pre-build the embeddings index
  *   clean      Remove index cache
@@ -18,6 +19,10 @@ import { spawn } from 'node:child_process';
 const cmd = process.argv[2];
 
 switch (cmd) {
+  case 'config':
+    import('./src/config-wizard.mjs').then(m => m.runConfigWizard(process.cwd())).catch(e => { console.error(e.message); process.exit(1); });
+    break;
+
   case 'init':
     printInit();
     break;
@@ -149,16 +154,19 @@ USAGE
 
 COMMANDS
   (default)    Start the MCP server (for opencode/Claude to connect)
+  config       Interactive TUI to set up .semantic-search.json
   init         Print config snippets for opencode / Claude Desktop
   index [dir]  Pre-build embeddings index for a directory
   clean [dir]  Remove index cache
 
 CONFIG
-  Create .semantic-search.json in your project root to customize:
-  https://github.com/luausoft/semantic-search-mcp#configuration
+  Run semantic-search-mcp config for interactive setup.
+  Or create .semantic-search.json manually:
+  https://github.com/Zulaxy/semantic-search-mcp#configuration
 
 EXAMPLES
   semantic-search-mcp          # Start server (for MCP clients)
+  semantic-search-mcp config   # Interactive config setup
   semantic-search-mcp init     # Show config snippets
   npx semantic-search-mcp      # Run without installing
 `);
