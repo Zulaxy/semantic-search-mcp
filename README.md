@@ -90,19 +90,6 @@ Add this to your `opencode.json` (or `opencode.jsonc`) in the project root:
 }
 ```
 
-**Claude Code (CLI)** - add `.mcp.json` to your project root:
-
-```json
-{
-  "mcpServers": {
-    "semantic-search": {
-      "command": "npx",
-      "args": ["-y", "semantic-search-mcp"]
-    }
-  }
-}
-```
-
 Restart your AI agent. Done. Searches are instant - cache was already built.
 
 ---
