@@ -14,6 +14,7 @@
  */
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 
@@ -118,7 +119,8 @@ Env vars (prefix SEMANTIC_SEARCH_):
 }
 
 function indexCommand(ws) {
-  const proc = spawn(process.execPath, [new URL('./src/server.mjs', import.meta.url).pathname], {
+  const serverPath = fileURLToPath(new URL('./src/server.mjs', import.meta.url));
+  const proc = spawn(process.execPath, [serverPath], {
     cwd: ws,
     stdio: ['pipe', 'pipe', 'inherit'],
     env: { ...process.env },
