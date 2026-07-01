@@ -47,7 +47,7 @@ switch (cmd) {
 
   case '--version':
   case '-v': {
-    const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf-8'));
+    const pkg = JSON.parse(readFileSync(new URL('package.json', import.meta.url), 'utf-8'));
     console.log(pkg.version);
     break;
   }
@@ -66,7 +66,7 @@ switch (cmd) {
 
 function startServer() {
   // Import and run the server directly
-  import('../src/server.mjs').catch(e => {
+  import('./src/server.mjs').catch(e => {
     console.error('Fatal:', e.message);
     process.exit(1);
   });
@@ -117,7 +117,7 @@ function indexCommand(ws) {
   // Run server in index-only mode
   const child = spawn(process.execPath, [
     '-e', `
-      import('../src/server.mjs').then(() => {
+      import('./src/server.mjs').then(() => {
         // Server auto-indexes on notifications/initialized
         // Send init + initialized, wait for indexing, then exit
         const rl = require('readline').createInterface({input:process.stdin});
