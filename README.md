@@ -58,7 +58,9 @@ Restart your AI agent. The first search will index your codebase (~5-15 min depe
 
 ## Configuration
 
-Create `.semantic-search.json` in your project root:
+⚡ **Interactive setup:** `semantic-search-mcp config` — TUI wizard for extensions, model, thresholds.
+
+Or manually create `.semantic-search.json` in your project root:
 
 ```json
 {
@@ -105,6 +107,9 @@ export SEMANTIC_SEARCH_MODEL="Xenova/bge-small-en-v1.5"
 ```bash
 # Start the MCP server (default — for AI agents to connect)
 semantic-search-mcp
+
+# Interactive TUI config wizard
+semantic-search-mcp config
 
 # Print config snippets for your AI agent
 semantic-search-mcp init
