@@ -5,7 +5,7 @@
 [![npm version](https://img.shields.io/npm/v/semantic-search-mcp)](https://www.npmjs.com/package/semantic-search-mcp)
 [![node](https://img.shields.io/node/v/semantic-search-mcp)](https://nodejs.org)
 
-AI coding agents (opencode, Claude, Cursor) can grep for exact words — but `semantic-search-mcp` lets them **find code by meaning**. Ask "where do we handle authentication?" and get back `config/auth.php`, `AuthController.php`, `login.blade.php` — even if the word "handle" doesn't appear.
+AI coding agents (opencode, Claude, Cursor) can grep for exact words - but `semantic-search-mcp` lets them **find code by meaning**. Ask "where do we handle authentication?" and get back `config/auth.php`, `AuthController.php`, `login.blade.php` - even if the word "handle" doesn't appear.
 
 **Powered by:** [`bge-small-en-v1.5`](https://huggingface.co/Xenova/bge-small-en-v1.5) via ONNX runtime. Everything runs **locally**, no data leaves your machine. 80MB, 384-dim, optimized for retrieval.
 
@@ -25,7 +25,7 @@ npx semantic-search-mcp
 
 ### 2. Connect to your AI agent
 
-**opencode** — add to `opencode.jsonc`:
+**opencode** - add to `opencode.jsonc`:
 
 ```jsonc
 {
@@ -39,7 +39,7 @@ npx semantic-search-mcp
 }
 ```
 
-**Claude Desktop** — add to `claude_desktop_config.json`:
+**Claude Desktop** - add to `claude_desktop_config.json`:
 
 ```json
 {
@@ -58,7 +58,7 @@ Restart your AI agent. The first search will index your codebase (~5-15 min depe
 
 ## Configuration
 
-⚡ **Interactive setup:** `semantic-search-mcp config` — TUI wizard for extensions, model, thresholds.
+⚡ **Interactive setup:** `semantic-search-mcp config` - TUI wizard for extensions, model, thresholds.
 
 Or manually create `.semantic-search.json` in your project root:
 
@@ -105,7 +105,7 @@ export SEMANTIC_SEARCH_MODEL="Xenova/bge-small-en-v1.5"
 ## CLI Commands
 
 ```bash
-# Start the MCP server (default — for AI agents to connect)
+# Start the MCP server (default - for AI agents to connect)
 semantic-search-mcp
 
 # Interactive TUI config wizard
@@ -126,11 +126,11 @@ semantic-search-mcp --help
 
 ## How It Works
 
-1. **Walk the workspace** — find all code files matching the configured extensions
-2. **Chunk files** — split large files into manageable pieces (default: 300 lines per chunk, max 4 per file)
-3. **Embed with ONNX** — run each chunk through [`bge-small-en-v1.5`](https://huggingface.co/Xenova/bge-small-en-v1.5) locally (384-dimensional vectors)
-4. **Cache** — save the index to disk for instant restarts
-5. **Search** — embed the query, compute cosine similarity against all chunks, return top matches
+1. **Walk the workspace** - find all code files matching the configured extensions
+2. **Chunk files** - split large files into manageable pieces (default: 300 lines per chunk, max 4 per file)
+3. **Embed with ONNX** - run each chunk through [`bge-small-en-v1.5`](https://huggingface.co/Xenova/bge-small-en-v1.5) locally (384-dimensional vectors)
+4. **Cache** - save the index to disk for instant restarts
+5. **Search** - embed the query, compute cosine similarity against all chunks, return top matches
 
 Everything runs on your machine. No API calls, no telemetry, no data leaves your computer.
 
@@ -138,10 +138,10 @@ Everything runs on your machine. No API calls, no telemetry, no data leaves your
 
 | Score | Meaning |
 |-------|---------|
-| 0.7+ | Very strong match — almost certainly what you're looking for |
-| 0.5-0.7 | Strong match — likely relevant |
-| 0.3-0.5 | Moderate match — tangentially related |
-| <0.3 | Weak match — may be noise |
+| 0.7+ | Very strong match - almost certainly what you're looking for |
+| 0.5-0.7 | Strong match - likely relevant |
+| 0.3-0.5 | Moderate match - tangentially related |
+| <0.3 | Weak match - may be noise |
 
 ## Supported Languages
 
@@ -162,6 +162,6 @@ MIT
 
 ## Related
 
-- [Cursor's semantic search blog](https://cursor.com/blog/semsearch) — 12.5% better accuracy with semantic search
-- [sturdy-dev/semantic-code-search](https://github.com/sturdy-dev/semantic-code-search) — Python CLI, per-function embeddings
-- [@xenova/transformers](https://github.com/xenova/transformers) — ONNX models in JavaScript
+- [Cursor's semantic search blog](https://cursor.com/blog/semsearch) - 12.5% better accuracy with semantic search
+- [sturdy-dev/semantic-code-search](https://github.com/sturdy-dev/semantic-code-search) - Python CLI, per-function embeddings
+- [@xenova/transformers](https://github.com/xenova/transformers) - ONNX models in JavaScript
