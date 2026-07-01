@@ -23,7 +23,21 @@ Or run without installing:
 npx semantic-search-mcp
 ```
 
-### 2. Connect to your AI agent
+### 2. Index your project (first step!)
+
+```bash
+semantic-search-mcp index
+```
+
+Shows live progress:
+
+```
+████████░░░░░░░░░░░░ 50% (3684/7368) — ~180s remaining
+```
+
+First run downloads model (~80MB) + indexes code (5-15 min). Restarts load cache instantly.
+
+### 3. Connect to your AI agent
 
 **opencode** - add to `opencode.jsonc`:
 
@@ -52,9 +66,9 @@ npx semantic-search-mcp
 }
 ```
 
-### 3. Done!
+### 4. Done!
 
-Restart your AI agent. The first search will index your codebase (~5-15 min depending on size). Subsequent searches are instant (cached).
+Restart your AI agent. Searches are instant — cache was already built by `semantic-search-mcp index`.
 
 ## Configuration
 
@@ -105,8 +119,8 @@ export SEMANTIC_SEARCH_MODEL="Xenova/bge-small-en-v1.5"
 ## CLI Commands
 
 ```bash
-# Start the MCP server (default - for AI agents to connect)
-semantic-search-mcp
+# Index your project with live progress bar (run this first!)
+semantic-search-mcp index
 
 # Interactive TUI config wizard
 semantic-search-mcp config

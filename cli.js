@@ -6,15 +6,16 @@
  * Commands:
  *   (none)     Start the MCP server
  *   config     Interactive TUI to set up .semantic-search.json
- *   init       Print opencode config snippet
- *   index      Pre-build the embeddings index
+ *   index      Pre-build index with live progress bar
  *   clean      Remove index cache
+ *   init       Print opencode config snippet
  *   --help     This message
  *   --version  Print version
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { spawn } from 'node:child_process';
+import { createInterface } from 'node:readline';
 
 const cmd = process.argv[2];
 
@@ -117,31 +118,68 @@ Env vars (prefix SEMANTIC_SEARCH_):
 }
 
 function indexCommand(ws) {
-  // Run server in index-only mode
-  const child = spawn(process.execPath, [
-    '-e', `
-      import('./src/server.mjs').then(() => {
-        // Server auto-indexes on notifications/initialized
-        // Send init + initialized, wait for indexing, then exit
-        const rl = require('readline').createInterface({input:process.stdin});
-        process.stdin.write(JSON.stringify({jsonrpc:'2.0',id:1,method:'initialize',params:{}})+'\\n');
-        process.stdin.write(JSON.stringify({jsonrpc:'2.0',method:'notifications/initialized'})+'\\n');
-        process.stdin.write(JSON.stringify({jsonrpc:'2.0',method:'notifications/exit'})+'\\n');
-      });
-    `,
-  ], {
+  const proc = spawn(process.execPath, [new URL('./src/server.mjs', import.meta.url).pathname], {
     cwd: ws,
-    stdio: 'inherit',
+    stdio: ['pipe', 'pipe', 'inherit'],
     env: { ...process.env },
   });
-  child.on('exit', code => process.exit(code || 0));
+
+  let buf = '';
+  proc.stdout.on('data', c => { buf += c.toString(); });
+
+  function send(m) { proc.stdin.write(JSON.stringify(m) + '\n'); }
+
+  function wait(id, t = 30000) {
+    return new Promise((res, rej) => {
+      const check = () => {
+        for (const line of buf.split('\n')) {
+          try { const m = JSON.parse(line.trim()); if (m.id === id) { res(m); return; } } catch {}
+        }
+        setTimeout(check, 100);
+      };
+      setTimeout(() => rej(new Error('timeout')), t);
+      check();
+    });
+  }
+
+  function bar(pct, w = 30) {
+    const f = Math.round(pct / 100 * w);
+    return '[' + '█'.repeat(f) + '░'.repeat(w - f) + ']';
+  }
+
+  (async () => {
+    send({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} });
+    await wait(1);
+    send({ jsonrpc: '2.0', method: 'notifications/initialized' });
+
+    let lastPct = -1;
+    console.log('');
+    while (true) {
+      await new Promise(r => setTimeout(r, 2000));
+      send({ jsonrpc: '2.0', id: 99, method: 'tools/call', params: { name: 'get_status', arguments: {} } });
+      try {
+        const resp = await wait(99, 5000);
+        const s = JSON.parse(resp.result.content[0].text);
+        if (s.ready) {
+          process.stdout.write(`\r${bar(100)} Done! ${s.chunks} chunks in ${s.elapsed}s.\x1b[K\n`);
+          break;
+        }
+        if (s.pct !== lastPct && s.pct > 0) {
+          lastPct = s.pct;
+          const eta = s.total ? `${Math.round((s.total - s.progress) / (s.progress / Math.max(s.elapsed, 1)))}s` : '...';
+          process.stdout.write(`\r${bar(s.pct)} ${s.pct}% (${s.progress}/${s.total}) — ~${eta}\x1b[K`);
+        }
+      } catch { /* poll again */ }
+    }
+    proc.kill();
+    console.log('   Add to opencode.jsonc to connect your AI agent.\n');
+  })().catch(e => { console.error(e.message); proc.kill(); process.exit(1); });
 }
 
 function cleanCommand(ws) {
-  const fs = require('fs');
   const cacheDir = resolve(ws, '.opencode', 'mcp-cache', 'semantic-search');
-  if (fs.existsSync(cacheDir)) {
-    fs.rmSync(cacheDir, { recursive: true, force: true });
+  if (existsSync(cacheDir)) {
+    rmSync(cacheDir, { recursive: true, force: true });
     console.log(`Cleared cache: ${cacheDir}`);
   } else {
     console.log('No cache found.');
@@ -156,21 +194,15 @@ USAGE
   semantic-search-mcp [command]
 
 COMMANDS
+  index        Pre-build index with live progress bar (run this first!)
   (default)    Start the MCP server (for opencode/Claude to connect)
   config       Interactive TUI to set up .semantic-search.json
+  clean        Remove index cache
   init         Print config snippets for opencode / Claude Desktop
-  index [dir]  Pre-build embeddings index for a directory
-  clean [dir]  Remove index cache
-
-CONFIG
-  Run semantic-search-mcp config for interactive setup.
-  Or create .semantic-search.json manually:
-  https://github.com/Zulaxy/semantic-search-mcp#configuration
 
 EXAMPLES
-  semantic-search-mcp          # Start server (for MCP clients)
+  semantic-search-mcp index    # Index current project (first step)
   semantic-search-mcp config   # Interactive config setup
-  semantic-search-mcp init     # Show config snippets
-  npx semantic-search-mcp      # Run without installing
+  semantic-search-mcp init     # Show config snippets for your AI agent
 `);
 }
