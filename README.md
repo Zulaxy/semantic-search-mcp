@@ -1,15 +1,17 @@
 # semantic-search-mcp
 
-> Semantic code search MCP server for AI coding agents. Local embeddings, no API keys.
+> Semantic code search for AI coding agents. Local embeddings. No API keys. No data leaves your machine.
 
 [![npm version](https://img.shields.io/npm/v/semantic-search-mcp)](https://www.npmjs.com/package/semantic-search-mcp)
 [![node](https://img.shields.io/node/v/semantic-search-mcp)](https://nodejs.org)
 
-AI coding agents (opencode, Claude, Cursor) can grep for exact words - but `semantic-search-mcp` lets them **find code by meaning**. Ask "where do we handle authentication?" and get back `config/auth.php`, `AuthController.php`, `login.blade.php` - even if the word "handle" doesn't appear.
+Your AI agent (opencode, Claude, Cursor) can grep for exact words — but `semantic-search-mcp` lets it **find code by meaning**. Ask *"where do we handle authentication?"* and it returns `AuthController.php`, `login.blade.php`, `config/auth.php` — even if the word "handle" doesn't appear in any of them.
 
-**Powered by:** [`bge-small-en-v1.5`](https://huggingface.co/Xenova/bge-small-en-v1.5) via ONNX runtime. Everything runs **locally**, no data leaves your machine. 80MB, 384-dim, optimized for retrieval.
+**80MB model. Runs 100% locally. Powered by [`bge-small-en-v1.5`](https://huggingface.co/Xenova/bge-small-en-v1.5).**
 
-## Quick Start
+---
+
+## Quick Start (3 steps)
 
 ### 1. Install
 
@@ -17,29 +19,27 @@ AI coding agents (opencode, Claude, Cursor) can grep for exact words - but `sema
 npm install -g semantic-search-mcp
 ```
 
-Or run without installing:
+### 2. Index your project
 
 ```bash
-npx semantic-search-mcp
-```
-
-### 2. Index your project (first step!)
-
-```bash
+cd /path/to/your-project
 semantic-search-mcp index
 ```
 
-Shows live progress:
+The folder you run this from gets indexed. Shows live progress:
 
 ```
-████████░░░░░░░░░░░░ 50% (3684/7368) — ~180s remaining
+████████████████░░░░░░ 70% (5200/7368) — ~120s remaining
+██████████████████████ Done! 7368 chunks in 726s.
 ```
 
-First run downloads model (~80MB) + indexes code (5-15 min). Restarts load cache instantly.
+First run downloads the model (~80MB, one-time) + indexes your code (5-15 min depending on project size). After that, the cache is saved and restarts are instant.
 
-### 3. Connect to your AI agent
+**Multiple projects?** Run `cd /project-a && semantic-search-mcp index`, then `cd /project-b && semantic-search-mcp index`. Each project gets its own cache automatically.
 
-**opencode** - add to `opencode.jsonc`:
+### 3. Connect your AI agent
+
+Add this to your `opencode.json` (or `opencode.jsonc`) in the project root:
 
 ```jsonc
 {
@@ -53,7 +53,7 @@ First run downloads model (~80MB) + indexes code (5-15 min). Restarts load cache
 }
 ```
 
-**Claude Desktop** - add to `claude_desktop_config.json`:
+**Claude Desktop** — add to `claude_desktop_config.json`:
 
 ```json
 {
@@ -66,15 +66,68 @@ First run downloads model (~80MB) + indexes code (5-15 min). Restarts load cache
 }
 ```
 
-### 4. Done!
+Restart your AI agent. Done. Searches are instant — cache was already built.
 
-Restart your AI agent. Searches are instant — cache was already built by `semantic-search-mcp index`.
+---
+
+## FAQ
+
+### Which folder gets indexed?
+
+The folder you `cd` into before running `semantic-search-mcp index`. It's your current working directory. When opencode or Claude starts the MCP server, that same folder gets used automatically.
+
+### I have 3 projects. Do I index each one?
+
+Yes. Each project has its own cache:
+
+```
+project-a/.opencode/mcp-cache/semantic-search/index.json
+project-b/.opencode/mcp-cache/semantic-search/index.json
+project-c/.opencode/mcp-cache/semantic-search/index.json
+```
+
+### Where is the cache stored?
+
+`{your-project}/.opencode/mcp-cache/semantic-search/index.json`
+
+About 50-100MB per project. Survives PC restarts, Git pulls, everything. It's just files on disk. Only cleared if you run `semantic-search-mcp clean`.
+
+### How do I remove the cache?
+
+```bash
+semantic-search-mcp clean
+```
+
+### Do I need to re-index after code changes?
+
+No. But if you add many new files or want fresh results: `semantic-search-mcp clean && semantic-search-mcp index`.
+
+### What model does it use?
+
+`Xenova/bge-small-en-v1.5` by default (80MB, 384-dim, retrieval-optimized). You can switch models via `semantic-search-mcp config`.
+
+### Is my code sent anywhere?
+
+No. Everything runs on your machine — model, embeddings, search. Zero network calls after model download.
+
+---
+
+## CLI Commands
+
+```bash
+semantic-search-mcp index    # Index current folder (live progress bar)
+semantic-search-mcp config   # Interactive TUI to pick extensions, model, thresholds
+semantic-search-mcp clean    # Remove index cache
+semantic-search-mcp init     # Print opencode/Claude config snippet
+semantic-search-mcp           # Start the MCP server (used by AI agents)
+semantic-search-mcp --help   # All commands
+```
 
 ## Configuration
 
-⚡ **Interactive setup:** `semantic-search-mcp config` - TUI wizard for extensions, model, thresholds.
+Run `semantic-search-mcp config` for interactive setup (checkboxes for extensions, searchable model picker, number inputs).
 
-Or manually create `.semantic-search.json` in your project root:
+Or create `.semantic-search.json` in your project root:
 
 ```json
 {
@@ -86,96 +139,29 @@ Or manually create `.semantic-search.json` in your project root:
 }
 ```
 
-Or use environment variables:
+Or env vars: `SEMANTIC_SEARCH_EXTENSIONS=.php,.js`, `SEMANTIC_SEARCH_MODEL=Xenova/bge-small-en-v1.5`
 
-```bash
-export SEMANTIC_SEARCH_EXTENSIONS=".php,.js,.jsx,.ts,.tsx"
-export SEMANTIC_SEARCH_SKIPDIRS="node_modules,vendor"
-export SEMANTIC_SEARCH_MODEL="Xenova/bge-small-en-v1.5"
-```
+### All options
 
-### All config options
-
-| Key | Default | Description |
-|-----|---------|-------------|
-| `extensions` | `[".php", ".js", ".jsx", ".ts", ".tsx", ".vue", ".py", ".rb", ".go", ".rs", ".java", ".cs", ...]` | File extensions to index |
-| `skipDirs` | `["node_modules", "vendor", ".git", "dist", "build", ...]` | Directories to skip |
-| `model` | `"Xenova/bge-small-en-v1.5"` | HuggingFace model (smaller=faster, larger=more accurate) |
-| `cacheDir` | `".opencode/mcp-cache/semantic-search"` | Where to store the index (relative to workspace) |
-| `chunkThreshold` | `300` | Lines above which to split files into chunks |
-| `maxChunksPerFile` | `4` | Max chunks per large file |
-| `maxResults` | `50` | Maximum search results |
-| `defaultLimit` | `10` | Default number of results |
-
-### Alternative models
-
-| Model | Size | Dims | Speed | Quality |
-|-------|------|------|-------|---------|
-| `Xenova/bge-small-en-v1.5` | 80MB | 384 | Fast | Best retrieval |
-| `Xenova/all-MiniLM-L6-v2` | 80MB | 384 | Fast | Good |
-| `Xenova/all-mpnet-base-v2` | 420MB | 768 | Medium | Better |
-| `Xenova/multi-qa-MiniLM-L6-cos-v1` | 80MB | 384 | Fast | Better for QA |
-
-## CLI Commands
-
-```bash
-# Index your project with live progress bar (run this first!)
-semantic-search-mcp index
-
-# Interactive TUI config wizard
-semantic-search-mcp config
-
-# Print config snippets for your AI agent
-semantic-search-mcp init
-
-# Pre-build the index (optional, happens automatically on first use)
-semantic-search-mcp index
-
-# Clear the index cache
-semantic-search-mcp clean
-
-# Help
-semantic-search-mcp --help
-```
+| Key | Default | |
+|-----|---------|---|
+| `extensions` | 20+ code extensions | File types to index |
+| `skipDirs` | node_modules, vendor, .git, ... | Directories to skip |
+| `model` | Xenova/bge-small-en-v1.5 | HuggingFace embedding model |
+| `cacheDir` | .opencode/mcp-cache/semantic-search | Where cache is stored (per project) |
+| `chunkThreshold` | 300 | Lines before splitting file |
+| `maxChunksPerFile` | 4 | Max chunks per large file |
+| `maxResults` | 50 | Max search results |
+| `defaultLimit` | 10 | Default results per query |
 
 ## How It Works
 
-1. **Walk the workspace** - find all code files matching the configured extensions
-2. **Chunk files** - split large files into manageable pieces (default: 300 lines per chunk, max 4 per file)
-3. **Embed with ONNX** - run each chunk through [`bge-small-en-v1.5`](https://huggingface.co/Xenova/bge-small-en-v1.5) locally (384-dimensional vectors)
-4. **Cache** - save the index to disk for instant restarts
-5. **Search** - embed the query, compute cosine similarity against all chunks, return top matches
-
-Everything runs on your machine. No API calls, no telemetry, no data leaves your computer.
-
-## Score Interpretation
-
-| Score | Meaning |
-|-------|---------|
-| 0.7+ | Very strong match - almost certainly what you're looking for |
-| 0.5-0.7 | Strong match - likely relevant |
-| 0.3-0.5 | Moderate match - tangentially related |
-| <0.3 | Weak match - may be noise |
-
-## Supported Languages
-
-The default config indexes files with these extensions:
-`.php`, `.js`, `.jsx`, `.ts`, `.tsx`, `.vue`, `.py`, `.rb`, `.go`, `.rs`, `.java`, `.cs`, `.swift`, `.kt`, `.css`, `.scss`, `.less`, `.blade.php`, `.mjs`, `.cjs`
-
-Customize via `.semantic-search.json` or `SEMANTIC_SEARCH_EXTENSIONS` env var.
-
-## Requirements
-
-- Node.js >= 18.0.0
-- ~80MB disk for the embedding model (first run)
-- ~50-100MB disk for the index cache (varies by project size)
+1. **Scan** — walk your project, find code files
+2. **Extract** — split at function/class boundaries (PHP, JS, TS, Python, Go, Rust, Java)
+3. **Embed** — run each chunk through a local ONNX model (384-dim vectors)
+4. **Cache** — save everything to disk
+5. **Search** — embed your query, find closest matches via cosine similarity
 
 ## License
 
 MIT
-
-## Related
-
-- [Cursor's semantic search blog](https://cursor.com/blog/semsearch) - 12.5% better accuracy with semantic search
-- [sturdy-dev/semantic-code-search](https://github.com/sturdy-dev/semantic-code-search) - Python CLI, per-function embeddings
-- [@xenova/transformers](https://github.com/xenova/transformers) - ONNX models in JavaScript
