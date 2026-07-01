@@ -26,6 +26,10 @@ const SKIP_DIRS = new Set(config.skipDirs.map(d => d.toLowerCase()));
 let index = null;
 let indexReadyPromise = null;
 let indexReadyResolve = null;
+let indexStartTime = null;
+
+// Progress tracking for status reports
+let status = { stage: 'starting', progress: 0, total: 0, files: 0, chunks: 0 };
 
 // ─── Embedding Engine (singleton) ────────────────────────────────────────────
 
@@ -147,8 +151,12 @@ function chunkContent(filePath, content) {
 // ─── Index ───────────────────────────────────────────────────────────────────
 
 async function buildIndex() {
+  indexStartTime = Date.now();
+  status = { stage: 'indexing', progress: 0, total: 0, files: 0, chunks: 0 };
+  console.error(`[${config.serverName}] First run: indexing codebase. This is one-time ~10-15 min.`);
   console.error(`[${config.serverName}] Scanning workspace...`);
   const files = await walkDir(WORKSPACE);
+  status.files = files.length;
   console.error(`[${config.serverName}] Found ${files.length} indexable files.`);
 
   const allChunks = [];
@@ -156,29 +164,34 @@ async function buildIndex() {
     try {
       const c = readFileSync(fp, 'utf-8');
       if (c.length < 10) continue;
-      // Try function-level extraction first, fall back to line chunking
       const extracted = extractFunctions(fp, c, WORKSPACE);
-      if (extracted) {
-        allChunks.push(...extracted);
-      } else {
-        allChunks.push(...chunkContent(fp, c));
-      }
-    } catch { /* skip unreadable */ }
+      if (extracted) allChunks.push(...extracted);
+      else allChunks.push(...chunkContent(fp, c));
+    } catch {}
   }
+  status.chunks = allChunks.length;
+  status.total = allChunks.length;
   console.error(`[${config.serverName}] Generated ${allChunks.length} chunks. Computing embeddings...`);
 
   const BATCH_SIZE = 10;
   const indexed = [];
+
   for (let i = 0; i < allChunks.length; i += BATCH_SIZE) {
     const batch = allChunks.slice(i, i + BATCH_SIZE);
     const embs = await Promise.all(batch.map(c => embedText(embedContent(c))));
     for (let j = 0; j < batch.length; j++) indexed.push({ ...batch[j], embedding: embs[j] });
-    if ((i + BATCH_SIZE) % 100 === 0 || i + BATCH_SIZE >= allChunks.length) {
-      console.error(`[${config.serverName}]  ${Math.min(i + BATCH_SIZE, allChunks.length)}/${allChunks.length} chunks processed`);
+    const done = Math.min(i + BATCH_SIZE, allChunks.length);
+    status.progress = done;
+    if (done % 100 === 0 || done >= allChunks.length) {
+      const elapsed = (Date.now() - indexStartTime) / 1000;
+      const rate = done / elapsed;
+      const remaining = Math.round((allChunks.length - done) / rate);
+      console.error(`[${config.serverName}]  ${Math.round(done/allChunks.length*100)}% (${done}/${allChunks.length}) — ~${remaining}s remaining`);
     }
   }
   saveCache(indexed);
-  console.error(`[${config.serverName}] Indexing complete: ${indexed.length} chunks.`);
+  console.error(`[${config.serverName}] Indexing complete: ${indexed.length} chunks in ${Math.round((Date.now()-indexStartTime)/1000)}s.`);
+  status = { stage: 'ready', progress: indexed.length, total: indexed.length, files: files.length, chunks: indexed.length };
   return indexed;
 }
 
@@ -232,23 +245,51 @@ async function handleMessage(msg) {
 
     case 'tools/list':
       return send(id, {
-        tools: [{
-          name: 'semantic_search',
-          description: 'Search the codebase by semantic meaning. Finds relevant code even when exact keywords differ. Returns file paths, line numbers, snippets, and relevance scores.',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              query: { type: 'string', description: 'Natural-language description of what you\'re looking for (e.g., "user login flow", "how reviews are fetched")' },
-              limit: { type: 'number', description: `Max results (default ${config.defaultLimit}, max ${config.maxResults})`, default: config.defaultLimit },
-              path: { type: 'string', description: 'Optional subdirectory to restrict search (e.g., "app/Http/Web/Reviews")' },
+        tools: [
+          {
+            name: 'semantic_search',
+            description: 'Search the codebase by semantic meaning. Finds relevant code even when exact keywords differ.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                query: { type: 'string', description: 'Natural-language query' },
+                limit: { type: 'number', description: `Max results (default ${config.defaultLimit}, max ${config.maxResults})`, default: config.defaultLimit },
+                path: { type: 'string', description: 'Optional subdirectory filter' },
+              },
+              required: ['query'],
             },
-            required: ['query'],
           },
-        }],
+          {
+            name: 'get_status',
+            description: 'Check if the server is ready. Returns indexing progress, files count, elapsed time.',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
+        ],
       });
 
     case 'tools/call': {
       const { name, arguments: args } = params || {};
+
+      if (name === 'get_status') {
+        const elapsed = indexStartTime ? Math.round((Date.now() - indexStartTime) / 1000) : 0;
+        return send(id, {
+          content: [{ type: 'text', text: JSON.stringify({
+            stage: status.stage,
+            progress: status.progress,
+            total: status.total,
+            pct: status.total ? Math.round(status.progress / status.total * 100) : 0,
+            files: status.files,
+            chunks: status.chunks,
+            elapsed,
+            ready: status.stage === 'ready',
+            model: config.model,
+          }, null, 2) }],
+        });
+      }
+
       if (name !== 'semantic_search') {
         return send(id, { content: [{ type: 'text', text: `Unknown tool: ${name}` }], isError: true });
       }
@@ -276,11 +317,21 @@ async function handleMessage(msg) {
 
 function startIndexing() {
   if (indexReadyPromise) return;
+  status = { stage: 'starting', progress: 0, total: 0, files: 0, chunks: 0 };
   indexReadyPromise = new Promise(res => { indexReadyResolve = res; });
+  const cached = loadCache();
+  if (cached) {
+    index = cached;
+    status = { stage: 'ready', progress: index.length, total: index.length, files: index.length, chunks: index.length };
+    console.error(`[${config.serverName}] Ready. ${index.length} chunks cached.`);
+    if (indexReadyResolve) indexReadyResolve();
+    return;
+  }
+  console.error(`[${config.serverName}] First run: downloading model (~80MB) + indexing. One-time setup.`);
+  console.error(`[${config.serverName}] Model: ${config.model}`);
+  console.error(`[${config.serverName}] Extensions: ${config.extensions.join(' ')}`);
   (async () => {
-    const cached = loadCache();
-    if (cached) { index = cached; if (indexReadyResolve) indexReadyResolve(); return; }
-    try { index = await buildIndex(); } catch (e) { console.error(`[${config.serverName}] Index error: ${e.message}`); index = []; }
+    try { index = await buildIndex(); } catch (e) { console.error(`[${config.serverName}] Error: ${e.message}`); index = []; status.stage = 'error'; }
     if (indexReadyResolve) indexReadyResolve();
   })();
 }
