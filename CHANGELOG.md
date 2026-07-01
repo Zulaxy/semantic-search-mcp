@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.2
+- Fix Windows double-path bug in index command (`fileURLToPath`)
+
 ## 1.2.1
 - Complete README rewrite — FAQ section, per-project cache explanation, 3-step flow
 - Answers: which folder gets indexed, multiple projects, cache location, restart survival
