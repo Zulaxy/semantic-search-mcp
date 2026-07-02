@@ -105,14 +105,14 @@ The folder you `cd` into before running `semantic-search-mcp index`. It's your c
 Yes. Each project has its own cache:
 
 ```
-project-a/.opencode/mcp-cache/semantic-search/index.json
-project-b/.opencode/mcp-cache/semantic-search/index.json
-project-c/.opencode/mcp-cache/semantic-search/index.json
+project-a/.semantic-search/cache/index.json
+project-b/.semantic-search/cache/index.json
+project-c/.semantic-search/cache/index.json
 ```
 
 ### Where is the cache stored?
 
-`{your-project}/.opencode/mcp-cache/semantic-search/index.json`
+`{your-project}/.semantic-search/cache/index.json`
 
 About 50-100MB per project. Survives PC restarts, Git pulls, everything. It's just files on disk. Only cleared if you run `semantic-search-mcp clean`.
 

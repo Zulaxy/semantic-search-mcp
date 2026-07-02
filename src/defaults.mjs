@@ -23,7 +23,7 @@ export const DEFAULTS = {
   ],
 
   /** Directory for index cache (relative to workspace, gitignore this) */
-  cacheDir: '.opencode/mcp-cache/semantic-search',
+  cacheDir: '.semantic-search/cache',
 
   /** Lines above which to split file into chunks */
   chunkThreshold: 300,

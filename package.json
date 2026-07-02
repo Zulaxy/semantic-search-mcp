@@ -1,6 +1,6 @@
 ﻿{
     "name":  "semantic-search-mcp",
-    "version":  "1.2.6",
+    "version":  "1.2.7",
     "description":  "Semantic code search MCP server for AI coding agents (opencode, Claude, Cursor). Local embeddings, no API keys.",
     "type":  "module",
     "main":  "./src/server.mjs",
