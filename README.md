@@ -172,7 +172,7 @@ Or env vars: `SEMANTIC_SEARCH_EXTENSIONS=.php,.js`, `SEMANTIC_SEARCH_MODEL=Xenov
 | `extensions` | 20+ code extensions | File types to index |
 | `skipDirs` | node_modules, vendor, .git, ... | Directories to skip |
 | `model` | Xenova/bge-small-en-v1.5 | HuggingFace embedding model |
-| `cacheDir` | .opencode/mcp-cache/semantic-search | Where cache is stored (per project) |
+| `cacheDir` | `.semantic-search/cache` | Where cache is stored (per project) |
 | `chunkThreshold` | 300 | Lines before splitting file |
 | `maxChunksPerFile` | 4 | Max chunks per large file |
 | `maxResults` | 50 | Max search results |
